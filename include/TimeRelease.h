@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <stdio.h>
 
 class TimeRelease
 {
@@ -8,8 +9,8 @@ public:
     void set(void);
     void clear(void);
     void set(unsigned long v);
-    bool check(void);
-    bool isRunning(void);
+    boolean check(void);
+    boolean isRunning(void);
     unsigned long timeLeft(void);
     
 private:
@@ -47,7 +48,7 @@ void TimeRelease::clear()
     running = false;
 }
 
-bool TimeRelease::isRunning(){
+boolean TimeRelease::isRunning(){
   return running;
 }
 
@@ -60,7 +61,7 @@ unsigned long TimeRelease::timeLeft(){
 }
 
 
-bool TimeRelease::check()
+boolean TimeRelease::check()
 {
     if(running == false){return false;} //if the timer is not running it cant have run out. Allows for run out to trigger only once.
     
