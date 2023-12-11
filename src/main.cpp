@@ -1,14 +1,10 @@
 //Note that this sketch is too large due to some of the Serial String use for an Arduino Nano.
-  
-
 #define VERSIONINFO "SIO_Arduino_General 1.0.8"
 #define COMPATIBILITY "SIOPlugin 0.1.1"
 #include "TimeRelease.h"
 #include <Bounce2.h>
 #include <Arduino.h>
 #include "ino2cpp.h"
-
-
 
 #define IOSize  19 //number should be one more than the IO# :) (must include the idea of Zero)  
 //Outputs
