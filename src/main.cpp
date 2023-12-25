@@ -8,7 +8,8 @@
 #include <EEPROM.h>
 #include <Arduino.h>
 #include "ino2cpp.h"
-
+#include <SevSeg.h>
+#include <AccelStepper.h>
 
 #define IO0 2   // pin5/D5
 #define IO1 3   // pin6/D3
@@ -31,7 +32,13 @@
 #define IO17 A5 // pin24/A5
 //Note that A6 and A7 can only be used as Analog inputs. 
 //Arduino Documentation also warns that Any input that it floating is suseptable to random readings. Best way to solve this is to use a pull up(avalible as an internal) or down resister(external).I set all internals to pull up see IOTypes
+#define rotaryA A0
+#define rotaryB A1
+#define rotaryButton A2
 
+//stepper driver pins
+#define stepPin A5
+#define dirPin A4
 
 #define IOSize  18 //(0-19)note that this equates to 18 bacause of D0andD1 as Serial.
 bool _debug = false;
@@ -117,7 +124,80 @@ unsigned long reportInterval = 3000;
 
 
 
+SevSeg sevseg;
+AccelStepper stepper(1, stepPin, dirPin); 
+  
+//sevseg required inputs
+byte numDigits = 4;
+byte digitPins[] = {10, 11, 12, 13};
+byte segmentPins[] = {9, 2, 3, 5, 6, 8, 7, 4};
+bool resistorsOnSegments = true;
+byte hardwareConfig = COMMON_CATHODE;
+bool leadingZeros = false;
+bool disableDecPoint = false;
+
+int cableLength = 0;
+int currentState;
+int aLastState;  
+int rotaryButtonState;
+int i = 0;
+
+int rotaryEncoder ()
+{
+  currentState = digitalRead(rotaryA); // Reads the "current" state of the outputA
+  if (currentState != aLastState)
+  {     
+    if (digitalRead(rotaryB) != currentState)
+    { 
+      cableLength = cableLength + 5;  //+ and - 5 bcs the length of the cable is going to be selected by half a meter
+    } 
+    else 
+    {
+       cableLength = cableLength - 5;
+    }
+    Serial.println(cableLength); //debuggging purpose, 
+  } 
+  aLastState = currentState; // Updates the previous state of the outputA with the current state
+  return cableLength;
+}
+
+void stepperExecute()
+{
+  if (digitalRead(rotaryButton) == LOW && stepper.distanceToGo() == 0)
+  {
+    delay(100);
+    stepper.move(cableLength);
+    Serial.println("target position changed");
+      
+  }
+  while (stepper.distanceToGo() != 0)
+    {
+    /*
+    if(i == 0){
+      sevseg.setChars("jedu");
+      sevseg.refreshDisplay();
+      Serial.println("ugh");
+      i++;
+    }     */
+    Serial.println("stepper in move"); //debugging purpose
+    cableLength = 0;
+    stepper.run();
+
+  }
+  //i = 0;
+}
+
+
+
 void setup() {
+
+  Serial.begin(9600); //debugging purpose
+  sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments);
+  sevseg.setBrightness(20);
+  pinMode(rotaryButton, INPUT_PULLUP); // push button is an input pull up (High when not presses)
+
+  stepper.setMaxSpeed(500);
+  stepper.setAcceleration(200);
   // put your setup code here, to run once:
   Serial.begin(115200);
   delay(300);
@@ -162,6 +242,10 @@ void loop() {
     reportIO(ioChanged);
     
   }
+  rotaryEncoder();
+  sevseg.setNumber(cableLength, 1);
+  sevseg.refreshDisplay();
+  stepperExecute();
   
 }
 //*********************End loop***************************//
@@ -176,7 +260,7 @@ void reportIO(bool forceReport){
     Serial.println();
     IOReport.set(reportInterval);
     
-  }
+  } 
 }
 
 bool checkIO(){
